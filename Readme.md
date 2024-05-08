@@ -5,10 +5,10 @@ Dự án này về việc tạo ra một chiếc xe tự đi theo đường sử
 ## Các Thành Phần
 
 - Arduino Uno
-- Bộ điều khiển động cơ (Motor Driver, L298N hoặc tương tự)
+- [Bộ điều khiển động cơ (Motor Driver, L298N hoặc tương tự)](http://arduino.vn/bai-viet/893-cach-dung-module-dieu-khien-dong-co-l298n-cau-h-de-dieu-khien-dong-co-dc)
 - 2 Động cơ DC
-- 5 Cảm biến IR
-- Cảm biến khoảng cách siêu âm (Ultrasonic Distance Sensor, HC-SR04)
+- [5 Cảm biến IR](https://thuongtin.net/mo-dun-cam-bien-hong-ngoai-ir-voi-arduino/)
+- [Cảm biến khoảng cách siêu âm (Ultrasonic Distance Sensor, HC-SR04)](http://arduino.vn/bai-viet/233-su-dung-cam-bien-khoang-cach-hc-sr04)
 - Dây (Jumper Wires)
 - Breadboard (tùy chọn)
 
