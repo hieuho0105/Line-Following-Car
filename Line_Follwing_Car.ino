@@ -16,8 +16,6 @@ int irSensorDigital[NUM_IR] = {0,0,0,0,0};
 
 
 /* Khai báo chân cảm biến khoảng cách */
-unsigned long duration; // biến đo thời gian
-int distance;           // biến lưu khoảng cách đọc được
 const int trigPin = 12; // kết nối chân trigPin với chân 11 arduino
 const int echoPin = 13; // kết nối chân echoPin với chân 12 arduino
 
@@ -104,7 +102,7 @@ void Scan() {
     for (int i = 0; i < NUM_IR; i++) {
             irSensorDigital[i] = !digitalRead(irPins[i]);
         
-            int temp = 4-i;
+            int temp = 4 - i;
             irSensors = irSensors + (irSensorDigital[i] << temp);
         }    
 }
@@ -132,21 +130,20 @@ void UpdateError() {
             break;
 
         case B01100: 
-        case B10011: // Đi theo line trắng(*)
+        case B10011: 
             error = -30;
             break;
 
         case B00100:
         case B01110: 
         case B11111: 
-// Đi  theo line trắng(*)
         case B10001:
         case B11011: 
             error = 0;
             break;
 
         case B00110: 
-        case B11001: // Đi theo line trắng(*)
+        case B11001:
             error = 30;
             break;
         
@@ -167,109 +164,80 @@ void UpdateError() {
 }
 
 void UpdateCorrection() {
+    // Hệ số điều chỉnh cho các giá trị lỗi
+    const int errorValues[] = {0, 30, 60, 90, 120, -30, -60, -90, -120};
+    const int correctionValues[] = {0, 20, 75, 320, 345, -20, -75, -320, -345};
+    const int numValues = sizeof(errorValues) / sizeof(errorValues[0]);
 
-    if (error == 0) {
-        correction = 0;
+    // Các giá trị cực đại và cực tiểu cho việc điều chỉnh
+    const int MinCorrection = 0;
+    const int MaxCorrection = 320;
+    const int ExtremeCorrectionPositive = 345;
+    const int ExtremeCorrectionNegative = -345;
+    const int MotorRSpeedAdjustmentNegative = -45;
+    const int MotorLSpeedAdjustmentPositive = 20;
+    const float CorrectionFactor = 0.5; // Hệ số điều chỉnh
+
+    // Tìm giá trị điều chỉnh cho lỗi
+    for (int i = 0; i < numValues; ++i) {
+        if (error == errorValues[i]) {
+            correction = correctionValues[i];
+            break;
+        }
     }
-    
-    else if (error == 30) {
-        correction = 20;
-    }
-    
-    else if (error == 60) {
-        correction = 75;
-    }
-    
-    else if (error == 90) {
-        correction = 320;
-    }  
-    
-    else if (error ==120) {
-        correction = 345;
-    } 
-    
-    
-    else if (error == -30 ) {
-        correction = -20;
-    }
-    
-    else if (error == -60) {
-        correction = -75;
-    }
-    
-    else if (error == -90 ) {
-        correction = -320;
-    }  
-    
-    else if (error == -120 ) {
-        correction = -345;
-    } 
-    
-    
-    /* Điều chỉnh correction nếu maxSpeed nhỏ hơn 255 */
-    correction = (int) (correction * maxSpeed / 255 + 0.5);
-    
-    if (correction > 0 && correction < 320 ) {
+
+    // Điều chỉnh tốc độ động cơ
+    correction = (int)(correction * maxSpeed / 255.0 + CorrectionFactor);
+
+    if (correction > MinCorrection && correction < MaxCorrection) {
         motorRSpeed = maxSpeed - correction;
         motorLSpeed = maxSpeed;
-    }
-    if (correction == 320 || correction == 345) {
-        motorRSpeed = -45;
-        motorLSpeed = 20;
-    }
-    
-    else if (correction < 0 && correction > -320) {
+    } else if (correction == MaxCorrection || correction == ExtremeCorrectionPositive) {
+        motorRSpeed = MotorRSpeedAdjustmentNegative;
+        motorLSpeed = MotorLSpeedAdjustmentPositive;
+    } else if (correction < MinCorrection && correction > -MaxCorrection) {
         motorRSpeed = maxSpeed;
         motorLSpeed = maxSpeed + correction;
-    }
-    if (correction == -320 || correction == -345) {
-        motorRSpeed = 20;
-        motorLSpeed = -45;
-    }
-        else if (correction == 0) {
-        motorRSpeed = maxSpeed ;
-        motorLSpeed = maxSpeed ;
+    } else if (correction == -MaxCorrection || correction == ExtremeCorrectionNegative) {
+        motorRSpeed = MotorLSpeedAdjustmentPositive;
+        motorLSpeed = MotorRSpeedAdjustmentNegative;
+    } else if (correction == MinCorrection) {
+        motorRSpeed = maxSpeed;
+        motorLSpeed = maxSpeed;
     }
 }
 
 void Drive() {
+    // Điều chỉnh tốc độ động cơ
     if (motorRSpeed > 255) {motorRSpeed = 255;}
     else if (motorRSpeed < -255) {motorRSpeed = -255;}
-    
     if (motorLSpeed > 255) {motorLSpeed = 255;}
     else if (motorLSpeed < -255) {motorLSpeed = -255;}
-    
+
+    // Điều khiển động cơ bên phải
     if (motorRSpeed > 0) { // Động cơ phải tiến
         analogWrite(motorREnable, motorRSpeed);
         digitalWrite(motorRPin1, LOW);
         digitalWrite(motorRPin2, HIGH);
-    } 
-    
-    else if (motorRSpeed < 0) {// Động cơ phải đi lùi
+    }  else if (motorRSpeed < 0) {// Động cơ phải đi lùi
         analogWrite(motorREnable, abs(motorRSpeed));
         digitalWrite(motorRPin1, HIGH);
         digitalWrite(motorRPin2, LOW);
-    } 
-    
-    else if (motorRSpeed == 0) { // Động cơ bên phải dừng
+    } else if (motorRSpeed == 0) { // Động cơ bên phải dừng
         digitalWrite(motorREnable, HIGH);
         digitalWrite(motorRPin1, LOW);
         digitalWrite(motorRPin2, LOW);
     }
-    
+    // Điều khiển động cơ bên trái
     if (motorLSpeed > 0) { // Động cơ bên trái tiến
         analogWrite(motorLEnable, motorLSpeed);
         digitalWrite(motorLPin1, LOW);
         digitalWrite(motorLPin2, HIGH);
-    } 
-    
-    else if (motorLSpeed < 0) { // Động cơ bên trái lùi
+    } else if (motorLSpeed < 0) { // Động cơ bên trái lùi
         analogWrite(motorLEnable, abs(motorLSpeed));
         digitalWrite(motorLPin1, HIGH);
         digitalWrite(motorLPin2, LOW);
-    } 
-    
-        else if (motorLSpeed == 0) { // động cơ bên trái dừng
+    } else if (motorLSpeed == 0) { // động cơ bên trái dừng
         digitalWrite(motorLEnable, HIGH);
         digitalWrite(motorLPin1, LOW);
         digitalWrite(motorLPin2, LOW);
